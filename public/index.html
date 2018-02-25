@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+	<link rel="icon" sizes="any" mask href="favicon.ico">
+	<title>SOAP Report Online</title>
+	<link href="css/iview.css" rel="stylesheet">
+	<link href="css/index.css" rel="stylesheet">
+	<script src="js/jquery.min.js"></script>
+	<script src="js/vue.min.js"></script>
+	<script src="js/iview.min.js"></script>
+	<script src="js/util.js"></script>
+	<script src="js/clipboard.min.js"></script>
+</head>
+<body>
+	<div id="app">
+		<Steps :current="curStep" :status="stepStatus">
+			<Step title="Basic Information" content="Module Name & Version & SPEC Version"></Step>
+			<Step title="Upload Result And Logs" content="Result Of SOAP 2.0 Tool"></Step>
+			<Step title="GUI Check" content="GUI Check And Fill The Comments Table"></Step>
+			<Step title="Download Report" content="Download Excel Report"></Step>
+		</Steps>
+		<Card style="width:350px; height: 620px;" v-if="curStep===0">
+			<auto-complete
+				v-model.trim="module"
+				:data="projects"
+				placeholder="Module Name"
+				size="large"
+				style="width:300px">
+			</auto-complete>
+			<i-input
+				v-model.trim="version"
+				style="width:300px"
+				placeholder="Version"
+				size="large">
+				<span slot="prepend">V</span>
+			</i-input>
+			<auto-complete
+				v-model.trim="spec"
+				:data="specs"
+				placeholder="SPEC Version"
+				style="width:300px"
+				size="large">
+			</auto-complete>
+			<Upload
+				type="drag"
+				action=""
+				accept=".img"
+				:before-upload="getNameAndVersion"
+				style="width: 300px;">
+				<div style="padding: 20px 0">
+					<Icon type="ios-cloud-upload" size="52" style="color: #3399ff"></Icon>
+					<p>Click or drag file here to get the Module Name and Version</p>
+				</div>
+			</Upload>
+			<div>
+				<i-button
+					type="ghost"
+					shape="circle"
+					icon="chevron-right" 
+					size="large"
+					@click="basicNext">
+				</i-utton>
+			</div>
+		</Card>
+		<Card style="width:600px; height: 550px;" v-if="curStep===1" id="upload-card">
+			<Row>
+				<i-col span="9" offset="2">
+					<Upload
+						type="drag"
+						:action="result2Action"
+						:on-error="handUploadErr"
+						:on-success="handUploadSuccess"
+						max-size="500">
+						<div style="padding: 20px 0">
+							<Icon type="ios-cloud-upload" size="32" :class="uploaded.result2? 'uploaded': 'upload'"></Icon>
+							<p>upload 2.0 result</p>
+						</div>
+					</Upload>
+				</i-col>
+				<i-col span="9" offset="2">
+					<Upload
+						type="drag"
+						:action="result3Action"
+						:on-error="handUploadErr"
+						:on-success="handUploadSuccess"
+						max-size="500">
+						<div style="padding: 20px 0">
+							<Icon type="ios-cloud-upload" size="32" :class="uploaded.result3? 'uploaded': 'upload'"></Icon>
+							<p>upload 3.0 result</p>
+						</div>
+					</Upload>
+				</i-col>
+			</Row>
+			<Row>
+				<i-col span="9" offset="2">
+					<Upload
+						type="drag"
+						:action="log2Action"
+						:on-error="handUploadErr"
+						:on-success="handUploadSuccess"
+						max-size="500">
+						<div style="padding: 20px 0">
+							<Icon type="ios-cloud-upload" size="32" :class="uploaded.log2? 'uploaded': 'upload'"></Icon>
+							<p>upload 2.0 logs</p>
+						</div>
+					</Upload>
+				</i-col>
+				<i-col span="9" offset="2">
+					<Upload
+						type="drag"
+						:action="log3Action"
+						:on-error="handUploadErr"
+						:on-success="handUploadSuccess"
+						max-size="500">
+						<div style="padding: 20px 0">
+							<Icon type="ios-cloud-upload" size="32" :class="uploaded.log3? 'uploaded': 'upload'"></Icon>
+							<p>upload 3.0 logs</p>
+						</div>
+					</Upload>
+				</i-col>
+			</Row>
+			<div>
+				<i-button
+					type="ghost"
+					shape="circle"
+					icon="chevron-right" 
+					size="large"
+					@click="uploadNext">
+				</i-utton>
+			</div>
+		</Card>
+		<Row v-if="curStep===2" style="margin-top: 50px;">
+			<i-col span="12" offset="2">
+				<i-table
+					:columns="views.tableHead"
+					:data="soapTable"
+					:loading="tableLoading"
+					height="620px"
+					style="min-width: 620px;"
+					id="soap-table"
+					no-data-text="All SOAP Action Success">
+				</i-table>
+			</i-col>
+			<i-col span="6" offset="2">
+				<Card style="width:450px; height: 560px;" id="table-card2">
+					<div id="download-div">
+						<div class="download-log" @click="downloadLog" :data-path="log2Path"><Icon type="document" :data-path="log2Path"></Icon><br/><span>2.0 Log</span></div>
+						<div class="download-log" @click="downloadLog" :data-path="log3Path"><Icon type="document" :data-path="log3Path"></Icon><br/><span>3.0 Log</span></div>
+					</div>
+					<hr/>
+					<div>
+						<p>Click following URL to copy it to GUI members for checking:</p>
+						<p>
+							<a id="token-url" v-bind:class="{'text-point': clipboardSup}">{{tokenUrl}}</a>
+						</p>
+					</div>
+					<hr/>
+					<div>
+						<i-select v-model="refer" style="width:200px" placeholder="Please Select">
+							<i-option v-for="item in referModules" :value="item" :key="item">{{ item }}</i-option>
+						</i-select>
+						<div style="margin-top:25px;" v-if="refer === ''? false: true">
+							Refer to <u>{{refer}}</u> to <i-button type="primary" icon="ios-color-wand-outline" @click="fillTable">Fill Table</i-button>
+						</div>
+					</div>
+					<hr/>
+					<div>
+						<i-button type="primary" icon="android-done" @click="saveFailTable">Save & Next</i-button>
+					</div>
+				</Card>
+			</i-col>
+			<i-col span="2"></i-col>
+		</Row>
+		<Card style="width:350px; height: 360px;" v-if="curStep===3">
+			<i-circle :percent="percent" :stroke-color="circleColor">
+				<span>
+					<font style="font-size:16px; cursor: pointer;" v-if="(!start && !excelErr)" @click="generateExcel">Generate</font>
+					<font style="font-size:24px" v-if="(start && percent < 100 && !excelErr)">{{percent}}%</font>
+					<Icon type="ios-checkmark-empty" size="60" style="color:#5cb85c" v-if="(start && percent === 100 && !excelErr)"></Icon>
+					<Icon type="ios-close-empty" size="60" style="color:#ff5500" v-if="excelErr"></Icon>
+				</span>
+			</i-circle>
+			<i-button type="success" long v-if="(start && percent === 100 && !excelErr)" @click="downloadExcel">Download</i-button>
+		</Card>
+	</div>
+	<script>
+		var url = top.window.location.href;
+		var excelPath;
+		var index = url.indexOf("token=");
+		var tableHead = [
+			{title: "#", key: "belongTo", width: "70"},
+			{title: "SOAP Action", key: "action"},
+			{
+				title: "Action Result",
+				key: "status",
+				render: function(h, params) {
+					return h("i-select", {
+						props: {
+							"placeholder": "Please Select",
+							"value": params.row.status
+						},
+						style: {
+							"width": "120px"
+						},
+						on: {
+							"on-change": function(val) {
+								app.soapTable[params.index].status = val;
+							}
+						}
+					},[
+						h("i-option", {
+							props: {
+								value: "FAIL",
+							}
+						}, "FAIL"),
+						h("i-option", {
+							props: {
+								value: "N/A",
+							}
+						}, "Not Support"),
+					])
+				}
+			},
+			{
+				title: "Comment",
+				key: "comment",
+				render: function (h, params) {
+					return h("i-input", {
+						props: {
+							value: params.row.comment
+						},
+						on: {
+							"on-blur": function(event) {
+								app.soapTable[params.index].comment = event.target.value;
+							}
+						}
+					})
+				}
+			}
+		]
+		var app = new Vue({
+			el: "#app",
+			data: {
+				token: "",
+				projects: [],
+				specs: [],
+				module: "",
+				version: "",
+				spec: "",
+				curStep: (index === -1? 0: 2),
+				soapTable: [],
+				tableLoading: true,
+				refer: "",
+				referModules: [],
+				clipboardSup: Clipboard.isSupported(),
+				log2Path: "",
+				log3Path: "",
+				views: {
+					"tableHead": tableHead
+				},
+				uploaded: {
+					result2: false,
+					result3: false,
+					log2: false,
+					log3: false
+				},
+				start: false,
+				excelErr: false,
+				percent: 0
+			},
+			computed: {
+				stepStatus: function() {
+					return "";
+				},
+				result2Action: function() {
+					return ("/uploads?file=result2&token=" + app.token);
+				},
+				result3Action: function() {
+					return ("/uploads?file=result3&token=" + app.token);
+				},
+				log2Action: function() {
+					return ("/uploads?file=log2&token=" + app.token);
+				},
+				log3Action: function() {
+					return ("/uploads?file=log3&token=" + app.token);
+				},
+				tokenUrl: function() {
+					var url = top.window.location.href;
+					url = url.replace(/^http:\/\//i, "");
+					url = url.replace(/^([^\/]*)\/.*$/, "$1");
+					url = "http://" + url + "/index.html?token=" + this.token;
+					return url;
+				},
+				circleColor: function() {
+					if(app.excelErr)
+						return "#ff5500";
+					else if(app.percent === 100)
+						return "#5cb85c";
+					else
+						return "#2db7f5";
+				}
+			},
+			methods: {
+				getNameAndVersion: function(imgFile) {
+					var filename = imgFile.name;
+					if(/^\w+-v(\d+\.){3}\d+.*\.img$/i.test(filename) === false) {
+						app.$Notice.error({
+							title: "FW Format Error",
+							desc: "Filename format error. It should be /^\\w+-v(\\d+\\.){3}\\d+.*\\.img$/i"
+						})
+						app.module = app.version = "";
+						return false;
+					}
+					var index = filename.indexOf("-");
+					if(index === -1) {
+						app.$Notice.error({
+							title: "Read File Error",
+							desc: "Can't get the module name and version"
+						})
+						app.module = app.version = "";
+						return false;
+					}
+					app.module = filename.slice(0, index);
+					app.version = filename.slice(index+2, -4);
+					return false;
+				},
+				basicNext: function() {
+					if(app.module === "" || app.version === "" || app.spec === "") {
+						app.$Notice.error({
+							title: "All items are required"
+						})
+						return false;
+					}
+					var postDate = {
+						"moduleName": app.module,
+						"version": app.version,
+						"spec": app.spec
+					}
+					postApiAsync("/api/basicInfo", postDate, function(err, payload) {
+						if(err) {
+							app.$Notice.error({
+								title: payload.msg
+							})
+							return false;
+						}
+						app.token = payload.token;
+						app.curStep = 1;
+					});
+				},
+				uploadNext: function() {
+					if(Object.values(app.uploaded).indexOf(false) !== -1) {
+						app.$Notice.error({
+							title: "Please upload all files",
+						})
+						return;
+					}
+					toCheckingPanel();
+				},
+				handUploadErr: function() {
+					app.$Notice.error({
+						title: "Upload file failed. Please try again."
+					})
+				},
+				handUploadSuccess: function(rsp, file) {
+					if(rsp.status !== undefined && rsp.status === 0) {
+						app.$Notice.success({
+							title: "Upload " + file.name + " success."
+						})
+						app.uploaded[rsp.payload.uploaded] = true;
+					}
+					else if(rsp.message !== undefined && rsp.message !== "") {
+						app.$Notice.error({
+							title: rsp.message
+						})
+					}
+				},
+				downloadLog: function(e) {
+					var path = $(e.target).attr("data-path");
+					if(path === undefined)
+						path = $(e.target).parents(".download-log").attr("data-path");
+					ajaxDownloadFile("downloadLog/" + path);
+				},
+				fillTable: function() {
+					toCheckingPanel();
+				},
+				saveFailTable: function() {
+					var table = app.soapTable;
+					var len = table.length;
+					for(var i=0; i<len; i++) {
+						if(table[i].comment.trim() === "") {
+							app.$Notice.error({
+								title: "Please fill all items"
+							})
+							return;
+						}
+					}
+					postApiAsync("/api/saveFailTable", {"data": app.soapTable, "token": app.token}, function(err, payload) {
+						if(err) {
+							app.$Notice.error({
+								title: "Save data failed. Please try again"
+							})
+							return;
+						}
+						app.curStep = 3;
+					});
+				},
+				generateExcel: function() {
+					app.start = true,
+					app.percent = Math.floor(Math.random()*20);
+					app.excelErr = false;
+					postApiAsync("/api/generateReport", {"token": app.token}, function(err, payload) {
+						if(err) {
+							app.excelErr = true;
+							setTimeout(function() {
+								app.start = false;
+								app.percent = 0;
+								app.excelErr = false;
+							}, 2000);
+							return;
+						}
+						excelPath = payload.path;
+						var intval;
+						intval = setInterval(function() {
+							var tmp = app.percent + Math.floor(Math.random()*15);
+							if(tmp >= 100) {
+								app.percent = 100;
+								clearInterval(intval);
+							}
+							else {
+								app.percent = tmp;
+							}
+						}, 250);
+					})
+				},
+				downloadExcel: function() {
+					ajaxDownloadFile("/downloadExcel/" + excelPath);
+					setTimeout(function() {
+						app.percent = 0;
+						app.start = false;
+						app.excelErr = false;
+					}, 200)
+				}
+			}
+		})
+
+		initHome();
+
+		function getProjects() {
+			getApiAsync("/api/getModules", function(err, payload) {
+				if(!err) {
+					app.projects = payload.data;
+				}
+			})
+		}
+
+		function getSpecs() {
+			getApiAsync("/api/getSpecs", function(err, payload) {
+				if(!err) {
+					app.specs = payload.data;
+				}
+			})
+		}
+
+		function toCheckingPanel() {
+			app.curStep = 2;
+			app.tableLoading = true;
+			getApiAsync("/api/referModules", function(err, payload) {
+				if(!err) {
+					app.referModules = payload.data;
+					if(payload.data.length > 0)
+						app.refer = payload.data[0];
+				}
+			})
+			postApiAsync("/api/getTaskInfo", {"token": app.token, "refer": app.refer}, function(err, payload) {
+				if(err) {
+					app.curStep = 0;
+					app.$Notice.error({
+						title: payload.msg
+					})
+					return;
+				}
+				app.soapTable = payload.result;
+				app.log2Path = payload.log2;
+				app.log3Path = payload.log3;
+				app.tableLoading = false;
+			});
+		}
+
+		function initHome() {
+			getProjects();
+			getSpecs();
+			if(index !== -1) {
+				url = url.slice(index+6);
+				if(url.indexOf("&") === -1)
+					app.token = url;
+				else
+					app.token = url.slice(0, url.indexOf("&"));
+				toCheckingPanel();
+			}
+
+			if(Clipboard.isSupported()) {
+				var clipboard = new Clipboard('.text-point', {
+    				text: function(trigger) {
+        				return app.tokenUrl;
+    				}
+				});
+				clipboard.on("success", function() {
+					app.$Notice.success({
+						title: "Clipboard Message",
+						desc: "Copy the URL to clipboard successfully."
+					})
+				})
+				clipboard.on("error", function() {
+					app.$Notice.error({
+						title: "Clipboard Message",
+						desc: "Copy the URL to clipboard failed."
+					})
+				})
+			}
+		}
+	</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+    "name": "soap-report-online",
+    "version": "1.1.0",
+    "author": "liqingjht",
+    "description": "Generate report from the results of SOAP auto tool",
+    "main": "server.js",
+    "license": "MIT",
+    "dependencies": {
+        "body-parser": "^1.17.1",
+        "exceljs": "~0.4.2",
+        "express": "^4.15.2",
+        "formidable": "^1.1.1",
+        "request": "~2.79.0"
+    }
+}
