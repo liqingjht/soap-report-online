@@ -1,10 +1,10 @@
 <template>
   <div id="app">
-    <stepsTab :curStep='curStep' :stepStatus='stepStatus'/>
-    <basicTab :curStep='curStep' @stepNext='stepNext' @statusErr='statusErr' @updateDate='updateDate'/>
-    <uploadTab :curStep='curStep' @stepNext='stepNext' @statusErr='statusErr' :token='token'/>
-    <tableTab :curStep='curStep' @stepNext='stepNext' @statusErr='statusErr' :token='token'/>
-    <downTab :curStep='curStep' @stepNext='stepNext' @statusErr='statusErr' :token='token'/>
+    <stepsTab />
+    <basicTab v-if="curStep===0" />
+    <uploadTab v-else-if="curStep===1" />
+    <tableTab v-else-if="curStep===2" ref='tableTab' />
+    <downTab v-else-if="curStep===3" />
   </div>
 </template>
 
@@ -12,17 +12,27 @@
 import stepsTab from "./components/Steps";
 import basicTab from "./components/Basicinfo.vue";
 import uploadTab from "./components/Upload.vue";
-import tableTab from "./components/Upload.vue";
+import tableTab from "./components/Filltable.vue";
 import downTab from "./components/Download.vue";
+import { mapState } from 'vuex'
 
 export default {
   name: "App",
   data() {
-    return {
-      curStep: 0,
-      stepStatus: "wait",
-      token: ""
-    };
+    return {};
+  },
+  computed: {
+    ...mapState(['curStep', 'stepStatus', 'token'])
+  },
+  watch: {
+    curStep: function(newStep) {
+        if(newStep === 2) {
+            setTimeout(() => {
+                this.$refs.tableTab.getData();
+                this.$refs.tableTab.initClipboard();
+            }, 300);
+        }
+    }
   },
   components: { stepsTab, basicTab, uploadTab, tableTab, downTab },
   methods: {

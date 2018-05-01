@@ -1,5 +1,5 @@
 <template>
-    <Card style="width:600px; height: 550px;" v-if="curStep===1" id="upload-card">
+    <Card style="width:600px; height: 550px;" id="upload-card">
 			<Row>
 				<i-col span="9" offset="2">
 					<Upload
@@ -69,8 +69,10 @@
 </template>
 
 <script>
+import { mapState } from 'vuex'
+import $ from 'jquery'
+
 export default {
-  props: ["curStep", 'token'],
   data() {
     return {
         uploaded: {
@@ -93,7 +95,8 @@ export default {
     },
     log3Action() {
       return "/uploads?file=log3&token=" + this.token;
-    }
+    },
+    ...mapState(['token'])
   },
   methods: {
     uploadNext() {
@@ -103,7 +106,7 @@ export default {
         });
         return;
       }
-      toCheckingPanel();
+      this.$store.commit('setStep');
     },
     handUploadErr() {
       this.$Notice.error({

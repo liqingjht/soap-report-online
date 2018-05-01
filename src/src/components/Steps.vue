@@ -8,10 +8,14 @@
 </template>
 
 <script>
+import { mapState } from 'vuex'
+
 export default {
-    props: ['curStep', 'stepStatus'],
     data() {
         return {}
+    },
+    computed: {
+        ...mapState(['curStep', 'stepStatus'])
     }
 }
 </script>

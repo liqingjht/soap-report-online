@@ -1,5 +1,5 @@
 <template>
-    <Card style="width:350px; height: 620px;" v-if="curStep===0">
+    <Card style="width:350px; height: 620px;">
 			<auto-complete
 				v-model.trim="module"
 				:data="projects"
@@ -46,9 +46,10 @@
 
 <script>
 import Clipboard from "clipboard";
+import { mapState } from 'vuex'
+import $ from 'jquery'
 
 export default {
-  props: ["curStep"],
   data() {
     return {
       module: "",
@@ -100,11 +101,11 @@ export default {
           this.$Notice.error({
             title: payload.msg
           });
-          this.$emit("statusErr");
+          this.$store.commit('setStatus', 'error');
           return false;
         }
-        this.$emit("updateDate", { token: payload.token });
-        this.$emit("stepNext");
+        this.$store.commit('setToken', payload.token);
+        this.$store.commit('setStep');
       });
     }
   },
@@ -116,7 +117,7 @@ export default {
     });
     this.$util.getApiAsync("/api/getSpecs", (err, payload) => {
       if (!err) {
-        app.specs = payload.data;
+        this.specs = payload.data;
       }
     });
 
@@ -124,29 +125,14 @@ export default {
     let index = url.indexOf("token=");
     if (index !== -1) {
       url = url.slice(index + 6);
-      if (url.indexOf("&") === -1) this.$emit("updateDate", { token: url });
-      else this.$emit("updateDate", { token: url.slice(0, url.indexOf("&")) });
-      this.$emit("stepNext", 2);
-    }
+      if (url.indexOf("&") === -1) {
+          this.$store.commit('setToken', url);
+      }
+      else {
+          this.$store.commit('setToken', url.slice(0, url.indexOf("&")));
 
-    if (Clipboard.isSupported()) {
-      var clipboard = new Clipboard(".text-point", {
-        text: function(trigger) {
-          return url;
-        }
-      });
-      clipboard.on("success", () => {
-        this.$Notice.success({
-          title: "Clipboard Message",
-          desc: "Copy the URL to clipboard successfully."
-        });
-      });
-      clipboard.on("error", () => {
-        this.$Notice.error({
-          title: "Clipboard Message",
-          desc: "Copy the URL to clipboard failed."
-        });
-      });
+      }
+      this.$store.commit('setStep');
     }
   }
 };

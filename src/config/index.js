@@ -20,6 +20,11 @@ module.exports = {
             target: 'http://127.0.0.1:3000',
             //pathRewrite: {'^/api' : '/campaign_huggies/t3store_freeuse/admin'},
             changeOrigin: false
+          },
+          '/downloadLog': {
+            target: 'http://127.0.0.1:3000',
+            //pathRewrite: {'^/api' : '/campaign_huggies/t3store_freeuse/admin'},
+            changeOrigin: false
           }
     },
 

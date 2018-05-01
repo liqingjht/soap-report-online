@@ -1,5 +1,5 @@
 <template>
-    <Card style="width:350px; height: 360px;" v-if="curStep===3">
+    <Card style="width:350px; height: 360px;">
 			<i-circle :percent="percent" :stroke-color="circleColor">
 				<span>
 					<font style="font-size:16px; cursor: pointer;" v-if="(!start && !excelErr)" @click="generateExcel">Generate</font>
@@ -13,8 +13,10 @@
 </template>
 
 <script>
+import { mapState } from 'vuex'
+import $ from 'jquery'
+
 export default {
-  props: ['curStep'],
   data() {
       return {}
   }

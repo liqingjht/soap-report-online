@@ -1,5 +1,5 @@
 <template>
-    <Row v-if="curStep===2" style="margin-top: 50px;">
+    <Row style="margin-top: 50px;">
 			<i-col span="12" offset="2">
 				<i-table
 					:columns="tableHead"
@@ -45,9 +45,10 @@
 
 <script>
 import Clipboard from "clipboard";
+import { mapState } from 'vuex'
+import $ from 'jquery'
 
 export default {
-  props: ["curStep"],
   data() {
     return {
       tableHead: [
@@ -121,6 +122,93 @@ export default {
       log2Path: "",
       log3Path: ""
     };
+  },
+  computed: {
+    ...mapState(['token']),
+    tokenUrl () {
+		let url = top.window.location.href;
+		url = url.replace(/^http:\/\//i, "");
+		url = url.replace(/^([^\/]*)\/.*$/, "$1");
+		url = "http://" + url + "/index.html?token=" + this.token;
+		return url;
+	}
+  },
+  methods: {
+    downloadLog (e) {
+		var path = $(e.target).attr("data-path");
+		if(path === undefined)
+			path = $(e.target).parents(".download-log").attr("data-path");
+		this.$util.ajaxDownloadFile("downloadLog/" + path);
+    },
+    getData(refer = '') {
+		this.tableLoading = true;
+		this.$util.getApiAsync("/api/referModules", (err, payload) => {
+			if(!err) {
+				this.referModules = payload.data;
+				if(payload.data.length > 0)
+					this.refer = payload.data[0];
+			}
+		})
+		this.$util.postApiAsync("/api/getTaskInfo", {"token": this.token, "refer": refer}, (err, payload) => {
+			if(err) {
+				this.$emit("stepNext", 0);
+				this.$Notice.error({
+					title: payload.msg
+				})
+				return;
+			}
+			this.soapTable = payload.result;
+			this.log2Path = payload.log2;
+			this.log3Path = payload.log3;
+			this.tableLoading = false;
+		});
+    },
+    initClipboard() {
+        if (Clipboard.isSupported()) {
+          var clipboard = new Clipboard(".text-point", {
+            text: function(trigger) {
+              return this.tokenUrl;
+            }
+          });
+          clipboard.on("success", () => {
+            this.$Notice.success({
+              title: "Clipboard Message",
+              desc: "Copy the URL to clipboard successfully."
+            });
+          });
+          clipboard.on("error", () => {
+            this.$Notice.error({
+              title: "Clipboard Message",
+              desc: "Copy the URL to clipboard failed."
+            });
+          });
+        }
+    },
+    fillTable () {
+        this.$emit("stepNext", 2);
+        this.getData(this.refer);
+	},
+	saveFailTable () {
+		var table = this.soapTable;
+		var len = table.length;
+		for(var i=0; i<len; i++) {
+			if(table[i].comment.trim() === "") {
+				this.$Notice.error({
+					title: "Please fill all items"
+				})
+				return;
+			}
+		}
+		this.$util.postApiAsync("/api/saveFailTable", {"data": this.soapTable, "token": this.token}, function(err, payload) {
+			if(err) {
+				this.$Notice.error({
+					title: "Save data failed. Please try again"
+				})
+				return;
+			}
+			this.$emit("stepNext", 3);
+		});
+	},
   }
 };
 </script>
