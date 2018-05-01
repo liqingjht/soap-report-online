@@ -1,0 +1,51 @@
+#app {
+	text-align: center;
+	padding-top: 50px;
+}
+#app > div.ivu-card {
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 50px;
+}
+.ivu-card-body > div {
+	margin-top: 45px;
+	margin-bottom: 45px;
+}
+#table-card2 .ivu-card-body > div {
+	margin-top: 30px;
+	margin-bottom: 30px;
+}
+.ivu-card-body .ivu-auto-complete {
+	display: block;
+}
+.upload {
+	color: #3399ff;
+}
+.uploaded {
+	color: #19be6b;
+}
+#download-div {
+	display: inline-table;
+	display: -webkit-inline-box;
+}
+.download-log {
+	margin: 0 25px;
+	text-align: center;
+}
+.download-log i {
+	font-size: 40px;
+}
+.download-log:hover {
+	cursor: pointer;
+	color: #3399ff;
+}
+.text-point {
+	cursor: pointer;
+}
+#token-url {
+	text-decoration: underline;
+	color: #495060;
+}
+#soap-table > div {
+	overflow-y: scroll;
+}
